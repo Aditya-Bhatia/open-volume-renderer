@@ -39,8 +39,8 @@ cmake_minimum_required(VERSION 3.18)
 option(OVR_BUILD_OPENGL "Build with OpenGL Apps" ON)
 option(OVR_BUILD_CUDA "Build with CUDA" ON)
 
-option(OVR_BUILD_DEVICE_OPTIX7  "Build OptiX7 Device" ON)
-option(OVR_BUILD_DEVICE_OSPRAY  "Build OSPRay Device" OFF)
+option(OVR_BUILD_DEVICE_OPTIX7  "Build OptiX7 Device" OFF)
+option(OVR_BUILD_DEVICE_OSPRAY  "Build OSPRay Device" ON)
 option(OVR_BUILD_SCENE_USD "Build USDA Scene Reader" OFF)
 
 # ------------------------------------------------------------------

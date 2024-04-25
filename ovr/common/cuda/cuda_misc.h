@@ -13,7 +13,7 @@
 #include <stdexcept>
 #include <atomic>
 
-#include <cuda_runtime.h>
+#include </usr/local/cuda-12.4/targets/x86_64-linux/include/cuda_runtime.h>
 
 #ifndef MAX
 #define MAX(a, b) ((a > b) ? a : b)
