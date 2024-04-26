@@ -401,77 +401,108 @@ public:
       ImGui::SetNextWindowSizeConstraints(ImVec2(450, 400), ImVec2(FLT_MAX, FLT_MAX));
       if (ImGui::Begin("Control Panel", NULL)) {
 
-        bool updated_mat = false;
-        updated_mat |= ImGui::SliderFloat("Mat: Ambient", &config.ambient, 0.f, 1.f, "%.3f");
-        updated_mat |= ImGui::SliderFloat("Mat: Diffuse", &config.diffuse, 0.f, 1.f, "%.3f");
-        updated_mat |= ImGui::SliderFloat("Mat: Specular", &config.specular, 0.f, 1.f, "%.3f");
-        updated_mat |= ImGui::SliderFloat("Mat: Shininess", &config.shininess, 0.f, 100.f, "%.3f");
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; 
+        if (ImGui::BeginTabBar("ControlPanelTabBar", tab_bar_flags))
+        {
+          if (ImGui::BeginTabItem("Renderer"))
+          {
+            static bool add_lights = config.add_lights;
+            if (ImGui::Checkbox("Add Lights", &add_lights)) {
+              config.add_lights = add_lights;
+              renderer->set_add_lights(config.add_lights);
+            }
 
-        bool updated_light = false;
-        updated_light |= ImGui::SliderFloat("Light: Phi", &config.phi, 0.f, 360.f, "%.2f");
-        updated_light |= ImGui::SliderFloat("Light: Theta", &config.theta, 0.f, 360.f, "%.2f");
-        updated_light |= ImGui::SliderFloat("Light: Intensity", &config.intensity, 0.f, 2.f, "%.3f");
+            static bool frame_accumulation = config.frame_accumulation;
+            if (ImGui::Checkbox("Frame Accumulation", &frame_accumulation)) {
+              config.frame_accumulation = frame_accumulation;
+              renderer->set_frame_accumulation(config.frame_accumulation);
+            }
 
-        bool updated = false;
-        updated |= ImGui::SliderFloat("Focus Center X", &config.focus.x, 0.f, 1.f, "%.3f");
-        updated |= ImGui::SliderFloat("Focus Center Y", &config.focus.y, 0.f, 1.f, "%.3f");
-        updated |= ImGui::SliderFloat("Focus Scale", &config.focus_scale, 0.01f, 1.f, "%.3f");
-        updated |= ImGui::SliderFloat("Base Noise", &config.base_noise, 0.01f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
-        if (updated) {
-          renderer->set_focus(config.focus, config.focus_scale, config.base_noise);
+            static bool global_illumination = config.global_illumination;
+            if (ImGui::Checkbox("Global Illumination", &global_illumination)) {
+              config.global_illumination = global_illumination;
+              renderer->set_path_tracing(config.global_illumination);
+            }
+
+            static int spp = config.spp;
+            if (ImGui::SliderInt("Sample Per Pixel", &spp, 1, 32)) {
+              config.spp = spp;
+              renderer->set_sample_per_pixel(config.spp);
+            }
+
+            static float sr = config.volume_sampling_rate;
+            if (ImGui::SliderFloat("Sample Rate", &sr, 0.01f, 10.f, "%.3f")) {
+              config.volume_sampling_rate = sr;
+              renderer->set_volume_sampling_rate(config.volume_sampling_rate);
+            }
+
+            ImGui::EndTabItem();
+          }
+
+          if (ImGui::BeginTabItem("Transfer Function"))
+          {
+            widget.build_gui();
+
+            ImGui::EndTabItem();
+          }
+          
+          if (ImGui::BeginTabItem("Material"))
+          {
+            bool updated_mat = false;
+            updated_mat |= ImGui::SliderFloat("Mat: Ambient", &config.ambient, 0.f, 1.f, "%.3f");
+            updated_mat |= ImGui::SliderFloat("Mat: Diffuse", &config.diffuse, 0.f, 1.f, "%.3f");
+            updated_mat |= ImGui::SliderFloat("Mat: Specular", &config.specular, 0.f, 1.f, "%.3f");
+            updated_mat |= ImGui::SliderFloat("Mat: Shininess", &config.shininess, 0.f, 100.f, "%.3f");
+
+            if (updated_mat) {
+              renderer->set_mat_ambient(config.ambient);
+              renderer->set_mat_diffuse(config.diffuse);
+              renderer->set_mat_specular(config.specular);
+              renderer->set_mat_shininess(config.shininess);
+            }
+
+            ImGui::EndTabItem();
+          }
+
+          if (ImGui::BeginTabItem("Lighting"))
+          {
+            bool updated_light = false;
+            updated_light |= ImGui::SliderFloat("Light: Phi", &config.phi, 0.f, 360.f, "%.2f");
+            updated_light |= ImGui::SliderFloat("Light: Theta", &config.theta, 0.f, 360.f, "%.2f");
+            updated_light |= ImGui::SliderFloat("Light: Intensity", &config.intensity, 0.f, 2.f, "%.3f");
+
+            if (updated_light) {
+              // renderer->set_light_radius(config.radius);
+              renderer->set_light_phi(config.phi);
+              renderer->set_light_theta(config.theta);
+              renderer->set_light_intensity(config.intensity);
+            }
+
+            ImGui::EndTabItem();
+          }
+
+          if (ImGui::BeginTabItem("Advanced"))
+          {
+            bool updated = false;
+            updated |= ImGui::SliderFloat("Focus Center X", &config.focus.x, 0.f, 1.f, "%.3f");
+            updated |= ImGui::SliderFloat("Focus Center Y", &config.focus.y, 0.f, 1.f, "%.3f");
+            updated |= ImGui::SliderFloat("Focus Scale", &config.focus_scale, 0.01f, 1.f, "%.3f");
+            updated |= ImGui::SliderFloat("Base Noise", &config.base_noise, 0.01f, 1.0f, "%.3f", ImGuiSliderFlags_Logarithmic);
+            if (updated) {
+              renderer->set_focus(config.focus, config.focus_scale, config.base_noise);
+            }
+
+            static bool sparse_sampling = config.sparse_sampling;
+            if (ImGui::Checkbox("Sparse Sampling", &sparse_sampling)) {
+              config.sparse_sampling = sparse_sampling;
+              renderer->set_sparse_sampling(config.sparse_sampling);
+            }
+
+            ImGui::EndTabItem();
+          }
+
+          ImGui::EndTabBar();
         }
-
-        if (updated_mat) {
-          renderer->set_mat_ambient(config.ambient);
-          renderer->set_mat_diffuse(config.diffuse);
-          renderer->set_mat_specular(config.specular);
-          renderer->set_mat_shininess(config.shininess);
-        }
-
-        if (updated_light) {
-          // renderer->set_light_radius(config.radius);
-          renderer->set_light_phi(config.phi);
-          renderer->set_light_theta(config.theta);
-          renderer->set_light_intensity(config.intensity);
-        }
-
-        static bool add_lights = config.add_lights;
-        if (ImGui::Checkbox("Add Lights", &add_lights)) {
-          config.add_lights = add_lights;
-          renderer->set_add_lights(config.add_lights);
-        }
-
-        static bool sparse_sampling = config.sparse_sampling;
-        if (ImGui::Checkbox("Sparse Sampling", &sparse_sampling)) {
-          config.sparse_sampling = sparse_sampling;
-          renderer->set_sparse_sampling(config.sparse_sampling);
-        }
-
-        static bool frame_accumulation = config.frame_accumulation;
-        if (ImGui::Checkbox("Frame Accumulation", &frame_accumulation)) {
-          config.frame_accumulation = frame_accumulation;
-          renderer->set_frame_accumulation(config.frame_accumulation);
-        }
-
-        static bool global_illumination = config.global_illumination;
-        if (ImGui::Checkbox("Global Illumination", &global_illumination)) {
-          config.global_illumination = global_illumination;
-          renderer->set_path_tracing(config.global_illumination);
-        }
-
-        static int spp = config.spp;
-        if (ImGui::SliderInt("Sample Per Pixel", &spp, 1, 32)) {
-          config.spp = spp;
-          renderer->set_sample_per_pixel(config.spp);
-        }
-
-        static float sr = config.volume_sampling_rate;
-        if (ImGui::SliderFloat("Sample Rate", &sr, 0.01f, 10.f, "%.3f")) {
-          config.volume_sampling_rate = sr;
-          renderer->set_volume_sampling_rate(config.volume_sampling_rate);
-        }
-
-        widget.build_gui();
       }
       ImGui::End();
       widget.render();
