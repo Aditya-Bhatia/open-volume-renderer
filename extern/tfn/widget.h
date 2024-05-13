@@ -113,6 +113,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   tfn::vec4f draw_tfn_editor__color_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
   tfn::vec4f draw_tfn_editor__alpha_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
   tfn::vec4f draw_tfn_editor__interaction_blocks(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &, const float &);
+  tfn::vec4f draw_tfn_gaussian_alpha_control_points(tfn::TransferFunctionCore& tfn);
 };
 
 inline void TransferFunctionWidget::select_tfn(int selection)
@@ -136,6 +137,10 @@ inline void TransferFunctionWidget::select_tfn(int selection)
       }
       current_alphapoints = &uneditable_alphapoints;
       current_tfn_editable.y = 0;
+      if (tfn.gaussianObjectCount() > 0)
+      {
+        draw_tfn_gaussian_alpha_control_points(tfn);
+      }
     }
     else {
       current_alphapoints = tfn.alphaControlVector();
@@ -695,5 +700,26 @@ inline void TransferFunctionWidget::set_default_tfns()
     tfns_names.push_back(ct.first);
   }
 };
+
+inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(tfn::TransferFunctionCore& tfn) {
+  for (int i = 0; i < tfn.gaussianObjectCount(); i++) {
+    auto object = tfn.gaussianObject(i);
+    std::vector<float> gaussian_alphapoints;
+    gaussian_alphapoints.push_back(object.height());
+    gaussian_alphapoints.push_back(object.sigma);
+    // for (size_t j = 0; j < gaussian_alphapoints.size(); ++j) {
+    //   const ImVec2 pos(cursor.x + size.x * (*current_alphapoints)[i].pos.x + margin.x, cursor.y - size.y * (*current_alphapoints)[i].pos.y - margin.z);
+    //   ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
+    //   ImGui::InvisibleButton(("##AlphaControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
+    //   ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+    //   // dark bounding box
+    //   draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
+    //   // white background
+    //   draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
+    //   // highlight
+    //   draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
+    // }
+  }
+}
 
 } // namespace tfn
