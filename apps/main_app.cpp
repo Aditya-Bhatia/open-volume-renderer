@@ -164,7 +164,8 @@ public:
              const float scale,
              int width,
              int height,
-             std::string default_tfn)
+             std::string default_tfn,
+             std::string fileName)
     : GLFCameraWindow(title, camera.from, camera.at, camera.up, scale, width, height)
     , async_rendering_loop(std::bind(&MainWindow::render_background, this))
     , widget(std::bind(&MainWindow::set_transfer_function,
@@ -206,7 +207,7 @@ public:
       for (int i = 0; i < tfn.tfn_alphas.size() / 2; ++i) {
         alpha_controls.push_back(vec2f(tfn.tfn_alphas.at(2 * i), tfn.tfn_alphas.at(2 * i + 1)));
       }
-      widget.add_tfn(color_controls, alpha_controls, "builtin");
+      widget.add_tfn(color_controls, alpha_controls, "builtin", fileName);
     }
     if (tfn.tfn_value_range.y >= tfn.tfn_value_range.x) {
       widget.set_default_value_range(tfn.tfn_value_range.x, tfn.tfn_value_range.y);
@@ -401,7 +402,7 @@ public:
       const float DISTANCE = 10.0f;
       static int corner = 0;
       ImGuiIO& io = ImGui::GetIO();
-      ImGui::SetNextWindowSizeConstraints(ImVec2(io.DisplaySize.x / 4, io. DisplaySize.y - 2 * DISTANCE), ImVec2(MAXFLOAT, io. DisplaySize.y - 2 * DISTANCE));
+      ImGui::SetNextWindowSizeConstraints(ImVec2(io.DisplaySize.x / 4, io.DisplaySize.y - 2 * DISTANCE), ImVec2(io.DisplaySize.x - 2 * DISTANCE, io.DisplaySize.y - 2 * DISTANCE));
       ImVec2 window_pos = ImVec2((corner & 1) ? io.DisplaySize.x - DISTANCE : DISTANCE, (corner & 2) ? io.DisplaySize.y - DISTANCE : DISTANCE);
       ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
       ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
@@ -633,7 +634,7 @@ main(int ac, const char** av)
   // -------------------------------------------------------
   // initialize opengl window
   // -------------------------------------------------------
-  MainWindow* window = new MainWindow("OVR", renderer, layer, scene.camera, worldScale, 2560, 1440, tfn);
+  MainWindow* window = new MainWindow("OVR", renderer, layer, scene.camera, worldScale, 2560, 1440, tfn, std::string(av[1]));
   window->run();
   window->close();
 

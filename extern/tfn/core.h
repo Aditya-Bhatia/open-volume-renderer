@@ -164,6 +164,8 @@ class TransferFunctionCore
   void clearAlphaControls();
 
   int gaussianObjectCount() const;
+  std::vector<GaussianObject>       *GaussianObjectVector()       { return &m_gaussianObjects; }
+  const std::vector<GaussianObject> *GaussianObjectVector() const { return &m_gaussianObjects; }
   GaussianObject       &gaussianObject(int index);
   const GaussianObject &gaussianObject(int index) const;
   GaussianObject &addGaussianObject(const GaussianObject &gaussObj);

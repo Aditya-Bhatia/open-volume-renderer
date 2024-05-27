@@ -57,6 +57,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   int tfn_selection{-1};
   std::vector<ColorPoint>* current_colorpoints{};
   std::vector<AlphaPoint>* current_alphapoints{};
+  std::vector<GaussianPoint>* current_gaussianobjects{};
   vec2i current_tfn_editable{1, 1};
 
   std::vector<AlphaPoint> uneditable_alphapoints;
@@ -100,7 +101,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
 
   /* Create a new TFN profile */
   // void add_tfn(const tfn::TransferFunctionCore& core, const std::string &name);
-  void add_tfn(const list4f &, const list2f &, const std::string &name);
+  void add_tfn(const list4f &, const list2f &, const std::string &name, const std::string &fileName);
   
  private:
   /* Change selection */
@@ -113,7 +114,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   tfn::vec4f draw_tfn_editor__color_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
   tfn::vec4f draw_tfn_editor__alpha_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
   tfn::vec4f draw_tfn_editor__interaction_blocks(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &, const float &);
-  tfn::vec4f draw_tfn_gaussian_alpha_control_points(tfn::TransferFunctionCore& tfn);
+  tfn::vec4f draw_tfn_gaussian_alpha_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
 };
 
 inline void TransferFunctionWidget::select_tfn(int selection)
@@ -128,7 +129,7 @@ inline void TransferFunctionWidget::select_tfn(int selection)
     current_tfn_editable.x = (tfn.colorControlCount() > 128) ? 0 : 1;
 
     // in this case we have to use the raw RGBA table
-    if (tfn.alphaControlCount() == 0 || tfn.gaussianObjectCount() > 0) 
+    if (tfn.alphaControlCount() == 0) 
     {
       uneditable_alphapoints.resize(tfn.resolution());
       const auto *table = (vec4f *)tfn.data();
@@ -137,15 +138,12 @@ inline void TransferFunctionWidget::select_tfn(int selection)
       }
       current_alphapoints = &uneditable_alphapoints;
       current_tfn_editable.y = 0;
-      if (tfn.gaussianObjectCount() > 0)
-      {
-        draw_tfn_gaussian_alpha_control_points(tfn);
-      }
     }
     else {
       current_alphapoints = tfn.alphaControlVector();
       current_tfn_editable.y = (tfn.alphaControlCount() > 128) ? 0 : 1;
     }
+    current_gaussianobjects = tfn.GaussianObjectVector();
 
     tfn_changed  = true;
   }
@@ -176,7 +174,7 @@ inline TransferFunctionWidget::TransferFunctionWidget(const setter &fcn)
 //   }
 // }
 
-inline void TransferFunctionWidget::add_tfn(const list4f &ct, const list2f &ot, const std::string &name)
+inline void TransferFunctionWidget::add_tfn(const list4f &ct, const list2f &ot, const std::string &name, const std::string &fileName)
 {
   auto it = std::find(tfns_names.begin(), tfns_names.end(), name);
 
@@ -191,7 +189,27 @@ inline void TransferFunctionWidget::add_tfn(const list4f &ct, const list2f &ot, 
     for (size_t i = 0; i < ot.size(); ++i) {
       tfn.addAlphaControl(vec2f{ot[i].x, ot[i].y});
     }
-    
+
+    // gaussian here
+    std::ifstream file(fileName);
+    std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    json root = json::parse(text, nullptr, true, true);
+    json jstfn;
+    if (root.contains("view"))
+      jstfn = root["view"]["volume"]["transferFunction"];
+    else
+      jstfn = root["transferFunction"];
+    tfn.clearGaussianObjects();
+    if (jstfn.contains("gaussianObjects")) {
+      int count = (int)jstfn["gaussianObjects"].size();
+      for (int i = 0; i < count; ++i) {
+        const json &json_go = jstfn["gaussianObjects"][i];
+        if (!json_go.contains("mean") || !json_go.contains("sigma") || !json_go.contains("heightFactor")) continue;
+        TransferFunctionCore::GaussianObject gaussianObject(json_go["mean"].get<float>(), json_go["sigma"].get<float>(), json_go["heightFactor"].get<float>(), 1024);
+        tfn.addGaussianObject(gaussianObject);
+      }
+    }
+
     tfn.updateColorMap();
 
     tfns_names.push_back(name);
@@ -445,6 +463,10 @@ inline void TransferFunctionWidget::draw_tfn_editor(const float margin, const fl
   if (current_tfn_editable.y) {
     draw_tfn_editor__alpha_control_points(draw_list, m, s, c, alpha_len);
   }
+  // draw gaussian points
+  if (current_gaussianobjects->size() > 0) {
+    draw_tfn_gaussian_alpha_control_points(draw_list, m, s, c, alpha_len);
+  }
   // draw background interaction
   draw_tfn_editor__interaction_blocks(draw_list, m, s, c, color_len, alpha_len);
   // update cursors
@@ -695,31 +717,72 @@ inline void TransferFunctionWidget::set_default_tfns()
     tfn.addAlphaControl(vec2f(0.50f, 0.50f));
     tfn.addAlphaControl(vec2f(0.75f, 0.75f));
     tfn.addAlphaControl(vec2f(1.00f, 1.00f));
+
+    tfn.clearGaussianObjects();
+
     tfn.updateColorMap();
 
     tfns_names.push_back(ct.first);
   }
 };
 
-inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(tfn::TransferFunctionCore& tfn) {
-  for (int i = 0; i < tfn.gaussianObjectCount(); i++) {
-    auto object = tfn.gaussianObject(i);
-    std::vector<float> gaussian_alphapoints;
-    gaussian_alphapoints.push_back(object.height());
-    gaussian_alphapoints.push_back(object.sigma);
-    // for (size_t j = 0; j < gaussian_alphapoints.size(); ++j) {
-    //   const ImVec2 pos(cursor.x + size.x * (*current_alphapoints)[i].pos.x + margin.x, cursor.y - size.y * (*current_alphapoints)[i].pos.y - margin.z);
-    //   ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
-    //   ImGui::InvisibleButton(("##AlphaControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
-    //   ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
-    //   // dark bounding box
-    //   draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
-    //   // white background
-    //   draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
-    //   // highlight
-    //   draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
-    // }
+inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(
+    void *_draw_list,
+    const tfn::vec3f &margin, /* left, right, spacing*/
+    const tfn::vec2f &size,
+    const tfn::vec4f &cursor,
+    const float &alpha_len) 
+{
+  auto draw_list = (ImDrawList *)_draw_list;
+  // draw points
+  std::vector<vec2f> gaussian_controlpoints;
+  for (int i = 0; i < current_gaussianobjects->size(); i++) {
+    auto object = &(*current_gaussianobjects)[i];
+    gaussian_controlpoints.push_back(vec2f(object->mean, object->height()));
+    gaussian_controlpoints.push_back(vec2f(object->mean - object->sigma, object->value(object->mean - object->sigma)));
+    gaussian_controlpoints.push_back(vec2f(object->mean + object->sigma, object->value(object->mean + object->sigma)));
   }
+
+  for (size_t i = 0; i < gaussian_controlpoints.size(); ++i) {
+    const ImVec2 pos(cursor.x + size.x * gaussian_controlpoints[i].x + margin.x, cursor.y - size.y * gaussian_controlpoints[i].y - margin.z);
+    ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
+    ImGui::InvisibleButton(("##AlphaControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
+    ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+    // dark bounding box
+    draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
+    // white background
+    draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
+    // highlight
+    draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
+
+    if (ImGui::IsItemActive()) {
+      ImVec2 delta = ImGui::GetIO().MouseDelta;
+      if (i % 3 == 0) {
+        gaussian_controlpoints[i].y -= delta.y / size.y;
+        gaussian_controlpoints[i].y = clamp(gaussian_controlpoints[i].y, 0.0f, 1.0f);
+        (*current_gaussianobjects)[i / 3].setHeight(gaussian_controlpoints[i].y);
+        gaussian_controlpoints[i].x += delta.x / size.x;
+        gaussian_controlpoints[i].x = clamp(gaussian_controlpoints[i].x, 0.0f, 1.0f);
+        (*current_gaussianobjects)[i / 3].mean = gaussian_controlpoints[i].x;
+      }
+      else {
+        gaussian_controlpoints[i].x += delta.x / size.x;
+        gaussian_controlpoints[i].x = i % 3 == 1 ? clamp(gaussian_controlpoints[i].x, 0.0f, (*current_gaussianobjects)[i / 3].mean) : clamp(gaussian_controlpoints[i].x, (*current_gaussianobjects)[i / 3].mean, 1.0f);
+        (*current_gaussianobjects)[i / 3].sigma = abs((*current_gaussianobjects)[i / 3].mean - gaussian_controlpoints[i].x);
+      }
+      
+      (*current_gaussianobjects)[i / 3].update();
+
+      for (size_t k = 0; k < current_gaussianobjects->size(); k++) {
+        for (size_t j = 0; j < (*current_gaussianobjects)[k].alphaArray.size(); j++) {
+          (*current_alphapoints)[j].pos = vec2f((float)j / ((*current_gaussianobjects)[k].alphaArray.size() - 1), (*current_gaussianobjects)[k].alphaArray[j]);
+        }
+      }
+      
+      tfn_changed = true;
+    }
+  }
+  return vec4f();
 }
 
 } // namespace tfn
