@@ -773,9 +773,14 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
       
       (*current_gaussianobjects)[i / 3].update();
 
-      for (size_t k = 0; k < current_gaussianobjects->size(); k++) {
+      for (size_t j = 0; j < (*current_gaussianobjects)[0].alphaArray.size(); j++) {
+        (*current_alphapoints)[j].pos = vec2f((float)j / ((*current_gaussianobjects)[0].alphaArray.size() - 1), (*current_gaussianobjects)[0].alphaArray[j]);
+      }
+      for (size_t k = 1; k < current_gaussianobjects->size(); k++) {
         for (size_t j = 0; j < (*current_gaussianobjects)[k].alphaArray.size(); j++) {
-          (*current_alphapoints)[j].pos = vec2f((float)j / ((*current_gaussianobjects)[k].alphaArray.size() - 1), (*current_gaussianobjects)[k].alphaArray[j]);
+          if ((*current_gaussianobjects)[k].alphaArray[j] > (*current_gaussianobjects)[k - 1].alphaArray[j]) {
+            (*current_alphapoints)[j].pos = vec2f((float)j / ((*current_gaussianobjects)[k].alphaArray.size() - 1), (*current_gaussianobjects)[k].alphaArray[j]);
+          }
         }
       }
       
