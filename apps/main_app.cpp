@@ -193,24 +193,10 @@ public:
     glGenTextures(1, &frame_texture);
 
     /* initialize transfer function */
-    const auto& tfn = renderer->unsafe_get_tfn();
-    if (!tfn.tfn_colors.empty()) {
-      std::vector<vec4f> color_controls;
-      for (int i = 0; i < tfn.tfn_colors.size() / 3; ++i) {
-        color_controls.push_back(vec4f(i / float(tfn.tfn_colors.size() / 3 - 1), /* control point position */
-                                       tfn.tfn_colors.at(3 * i),                 //
-                                       tfn.tfn_colors.at(3 * i + 1),             //
-                                       tfn.tfn_colors.at(3 * i + 2)));           //
-      }
-      assert(!tfn.tfn_alphas.empty());
-      std::vector<vec2f> alpha_controls;
-      for (int i = 0; i < tfn.tfn_alphas.size() / 2; ++i) {
-        alpha_controls.push_back(vec2f(tfn.tfn_alphas.at(2 * i), tfn.tfn_alphas.at(2 * i + 1)));
-      }
-      widget.add_tfn(color_controls, alpha_controls, "builtin", fileName);
-    }
-    if (tfn.tfn_value_range.y >= tfn.tfn_value_range.x) {
-      widget.set_default_value_range(tfn.tfn_value_range.x, tfn.tfn_value_range.y);
+    widget.load(fileName);
+    const auto& render_tfn = renderer->unsafe_get_tfn();
+    if (render_tfn.tfn_value_range.y >= render_tfn.tfn_value_range.x) {
+      widget.set_default_value_range(render_tfn.tfn_value_range.x, render_tfn.tfn_value_range.y);
     }
 
     if (!default_tfn.empty()) {
@@ -614,9 +600,9 @@ main(int ac, const char** av)
     device = av[2];
   }
 
-  std::string tfn = "";
+  std::string default_tfn = "";
   if (ac >= 4) {
-    tfn = av[3];
+    default_tfn = av[3];
   }
 
   if (device == "gradient") {
@@ -634,7 +620,7 @@ main(int ac, const char** av)
   // -------------------------------------------------------
   // initialize opengl window
   // -------------------------------------------------------
-  MainWindow* window = new MainWindow("OVR", renderer, layer, scene.camera, worldScale, 2560, 1440, tfn, std::string(av[1]));
+  MainWindow* window = new MainWindow("OVR", renderer, layer, scene.camera, worldScale, 2560, 1440, default_tfn, std::string(av[1]));
   window->run();
   window->close();
 
