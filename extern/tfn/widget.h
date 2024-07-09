@@ -556,6 +556,9 @@ void TransferFunctionWidget::build_gui()
         valueRange.y = (defaultRange.y - defaultRange.x) * value_range_percentage.y * 0.01f + defaultRange.x;
       }
     }
+
+    static int defaultSelection = 0;
+    ImGui::Combo(" control type", &defaultSelection, "alpha_point\0gaussian\0freehand\0");
   }
 
   ImGui::EndGroup();
