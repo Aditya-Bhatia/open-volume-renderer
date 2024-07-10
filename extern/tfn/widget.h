@@ -41,6 +41,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   setter _setter_cb;
   vec2f valueRange; //< the current value range controlled by the user
   vec2f defaultRange; //< the default value range being displayed on the GUI
+  int controlpointSelection = 0; // select what type of control point is added
 
   /* The 2d palette texture on the GPU for displaying the color map preview in the UI. */
   GLuint tfn_palette;
@@ -411,7 +412,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - size.y - margin.z));
   if (size.x > 0 && size.y > 0) ImGui::InvisibleButton("##tfn_palette_alpha", ImVec2(size.x, size.y));
   // add alpha point
-  if (current_tfn_editable.y && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
+  if (controlpointSelection == 0 && current_tfn_editable.y && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
@@ -420,6 +421,13 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     pt.pos.x = x, pt.pos.y = y;
     current_alphapoints->insert(current_alphapoints->begin() + ir, pt);
     tfn_changed = true;
+  }
+  // add gaussian
+  if (controlpointSelection == 1 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsAnyItemHovered()) {
+    const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
+    const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
+    int il, ir;
+    // std::tie(il, ir) = find_interval();
   }
   return vec4f();
 }
@@ -557,8 +565,7 @@ void TransferFunctionWidget::build_gui()
       }
     }
 
-    static int defaultSelection = 0;
-    ImGui::Combo(" control type", &defaultSelection, "alpha_point\0gaussian\0freehand\0");
+    (ImGui::Combo(" control type", &controlpointSelection, "alpha_point\0gaussian\0freehand\0"));
   }
 
   ImGui::EndGroup();
