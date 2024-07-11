@@ -125,6 +125,17 @@ class TransferFunctionCore
     std::vector<float> alphaArray;
   };
 
+  struct GaussianControl
+  {
+    GaussianControl() : pos(0, 0) {}
+    GaussianControl(const vec2f &pos_) : pos(pos_) {}
+
+    float& p() { return pos.x; }
+    const float& p() const { return pos.x; }
+
+    vec2f pos;
+  };
+
  public:
   TransferFunctionCore(int resolution = 1024);
   TransferFunctionCore(const TransferFunctionCore &other);

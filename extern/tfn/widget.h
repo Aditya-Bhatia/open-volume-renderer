@@ -52,13 +52,15 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
 
   using ColorPoint = tfn::TransferFunctionCore::ColorControl;
   using AlphaPoint = tfn::TransferFunctionCore::AlphaControl;
-  using GaussianPoint = tfn::TransferFunctionCore::GaussianObject;
+  using GaussianObjects = tfn::TransferFunctionCore::GaussianObject;
+  using GaussianPoint = tfn::TransferFunctionCore::GaussianControl;
 
   // properties of currently selected transfer function
   int tfn_selection{-1};
   std::vector<ColorPoint>* current_colorpoints{};
   std::vector<AlphaPoint>* current_alphapoints{};
-  std::vector<GaussianPoint>* current_gaussianobjects{};
+  std::vector<GaussianObjects>* current_gaussianobjects{};
+  std::vector<GaussianPoint>* current_gaussianpoints{};
   vec2i current_tfn_editable{1, 1};
 
   std::vector<AlphaPoint> uneditable_alphapoints;
@@ -427,7 +429,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
-    // std::tie(il, ir) = find_interval();
+    // std::tie(il, ir) = find_interval(current_gaussianpoints, x);
   }
   return vec4f();
 }
@@ -735,16 +737,16 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
 {
   auto draw_list = (ImDrawList *)_draw_list;
   // draw points
-  std::vector<vec2f> gaussian_controlpoints;
+  current_gaussianpoints = new std::vector<GaussianPoint>();
   for (int i = 0; i < current_gaussianobjects->size(); i++) {
     auto object = &(*current_gaussianobjects)[i];
-    gaussian_controlpoints.push_back(vec2f(object->mean, object->height()));
-    gaussian_controlpoints.push_back(vec2f(object->mean - object->sigma, object->value(object->mean - object->sigma)));
-    gaussian_controlpoints.push_back(vec2f(object->mean + object->sigma, object->value(object->mean + object->sigma)));
+    current_gaussianpoints->push_back(vec2f(object->mean, object->height()));
+    current_gaussianpoints->push_back(vec2f(object->mean - object->sigma, object->value(object->mean - object->sigma)));
+    current_gaussianpoints->push_back(vec2f(object->mean + object->sigma, object->value(object->mean + object->sigma)));
   }
 
-  for (size_t i = 0; i < gaussian_controlpoints.size(); ++i) {
-    const ImVec2 pos(cursor.x + size.x * gaussian_controlpoints[i].x + margin.x, cursor.y - size.y * gaussian_controlpoints[i].y - margin.z);
+  for (size_t i = 0; i < current_gaussianpoints->size(); ++i) {
+    const ImVec2 pos(cursor.x + size.x * (*current_gaussianpoints)[i].pos.x + margin.x, cursor.y - size.y * (*current_gaussianpoints)[i].pos.y - margin.z);
     ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
     ImGui::InvisibleButton(("##GaussianControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
     ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
@@ -764,26 +766,26 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
     else if (ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
       if (i % 3 == 0) {
-        gaussian_controlpoints[i].y -= delta.y / size.y;
-        gaussian_controlpoints[i].y = clamp(gaussian_controlpoints[i].y, 0.0f, 1.0f);
-        (*current_gaussianobjects)[i / 3].setHeight(gaussian_controlpoints[i].y);
-        gaussian_controlpoints[i].x += delta.x / size.x;
-        gaussian_controlpoints[i].x = clamp(gaussian_controlpoints[i].x, 0.0f, 1.0f);
-        (*current_gaussianobjects)[i / 3].mean = gaussian_controlpoints[i].x;
+        (*current_gaussianpoints)[i].pos.y -= delta.y / size.y;
+        (*current_gaussianpoints)[i].pos.y = clamp((*current_gaussianpoints)[i].pos.y, 0.0f, 1.0f);
+        (*current_gaussianobjects)[i / 3].setHeight((*current_gaussianpoints)[i].pos.y);
+        (*current_gaussianpoints)[i].pos.x += delta.x / size.x;
+        (*current_gaussianpoints)[i].pos.x = clamp((*current_gaussianpoints)[i].pos.x, 0.0f, 1.0f);
+        (*current_gaussianobjects)[i / 3].mean = (*current_gaussianpoints)[i].pos.x;
       }
       else {
-        gaussian_controlpoints[i].x += delta.x / size.x;
-        gaussian_controlpoints[i].x = i % 3 == 1 ? clamp(gaussian_controlpoints[i].x, 
+        (*current_gaussianpoints)[i].pos.x += delta.x / size.x;
+        (*current_gaussianpoints)[i].pos.x = i % 3 == 1 ? clamp((*current_gaussianpoints)[i].pos.x, 
                                                             0.0f, 
                                                             (*current_gaussianobjects)[i / 3].mean-0.005f) 
-                                                 : clamp(gaussian_controlpoints[i].x, 
+                                                 : clamp((*current_gaussianpoints)[i].pos.x, 
                                                             (*current_gaussianobjects)[i / 3].mean+0.005f, 
                                                             1.0f);
 
-        float sigma = abs((*current_gaussianobjects)[i / 3].mean - gaussian_controlpoints[i].x);
+        float sigma = abs((*current_gaussianobjects)[i / 3].mean - (*current_gaussianpoints)[i].pos.x);
         float heightFactor = (*current_gaussianobjects)[i / 3].heightFactor;
         (*current_gaussianobjects)[i / 3].sigma = sigma;
-        (*current_gaussianobjects)[i / 3].setHeight(gaussian_controlpoints[i - (i%3)].y);
+        (*current_gaussianobjects)[i / 3].setHeight((*current_gaussianpoints)[i - (i%3)].pos.y);
 
       }
       
