@@ -425,11 +425,15 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     tfn_changed = true;
   }
   // add gaussian
-  if (controlpointSelection == 1 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsAnyItemHovered()) {
+  if (controlpointSelection == 1 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
-    // std::tie(il, ir) = find_interval(current_gaussianpoints, x);
+    std::tie(il, ir) = find_interval(current_gaussianpoints, x);
+    GaussianObjects obj;
+    obj.mean = x; obj.sigma = 0.06; obj.setHeight(y); obj.update();
+    current_gaussianobjects->insert(current_gaussianobjects->begin() + (ir/3), obj);
+    tfn_changed = true;
   }
   return vec4f();
 }
