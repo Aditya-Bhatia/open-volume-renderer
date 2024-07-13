@@ -414,7 +414,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - size.y - margin.z));
   if (size.x > 0 && size.y > 0) ImGui::InvisibleButton("##tfn_palette_alpha", ImVec2(size.x, size.y));
   // add alpha point
-  if (controlpointSelection == 0 && current_tfn_editable.y && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
+  if (controlpointSelection == 0 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
@@ -429,7 +429,12 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
-    std::tie(il, ir) = find_interval(current_gaussianpoints, x);
+    if (current_gaussianobjects->size() == 0) {
+      il = 0; ir = 0;
+      current_gaussianpoints = new std::vector<GaussianPoint>();
+    } else {
+      std::tie(il, ir) = find_interval(current_gaussianpoints, x);
+    }
     GaussianObjects obj;
     obj.mean = x; obj.sigma = 0.06; obj.setHeight(y); obj.update();
     current_gaussianobjects->insert(current_gaussianobjects->begin() + (ir/3), obj);
