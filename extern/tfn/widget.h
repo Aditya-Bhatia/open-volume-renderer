@@ -134,13 +134,8 @@ inline void TransferFunctionWidget::select_tfn(int selection)
     // in this case we have to use the raw RGBA table
     if (tfn.alphaControlCount() == 0) 
     {
-      uneditable_alphapoints.resize(tfn.resolution());
-      const auto *table = (vec4f *)tfn.data();
-      for (int i = 0; i < uneditable_alphapoints.size(); ++i) {
-        uneditable_alphapoints[i] = vec2f((float)i / (uneditable_alphapoints.size() - 1), table[i].w);
-      }
-      current_alphapoints = &uneditable_alphapoints;
-      current_tfn_editable.y = 0;
+      current_alphapoints = tfn.alphaControlVector();
+      current_tfn_editable.y = 1;
     }
     else {
       current_alphapoints = tfn.alphaControlVector();
@@ -418,7 +413,13 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
-    std::tie(il, ir) = find_interval(current_alphapoints, x);
+    if (current_alphapoints->size() == 0) {
+      il = 0; ir = 1;
+      current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
+      current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
+    } else {
+      std::tie(il, ir) = find_interval(current_alphapoints, x);
+    }
     AlphaPoint pt;
     pt.pos.x = x, pt.pos.y = y;
     current_alphapoints->insert(current_alphapoints->begin() + ir, pt);
