@@ -409,7 +409,8 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - size.y - margin.z));
   if (size.x > 0 && size.y > 0) ImGui::InvisibleButton("##tfn_palette_alpha", ImVec2(size.x, size.y));
   // add alpha point
-  if (controlpointSelection == 0 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
+  if ((controlpointSelection == 0 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) ||
+      (controlpointSelection == 2 && ImGui::IsMouseDragging(0) && ImGui::IsItemHovered())) {
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
@@ -577,7 +578,7 @@ void TransferFunctionWidget::build_gui()
       }
     }
 
-    (ImGui::Combo(" control type", &controlpointSelection, "alpha_point\0gaussian\0freehand\0"));
+    ImGui::Combo(" control type", &controlpointSelection, "alpha_point\0gaussian\0freehand\0");
   }
 
   ImGui::EndGroup();
