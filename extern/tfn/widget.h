@@ -41,7 +41,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   setter _setter_cb;
   vec2f valueRange; //< the current value range controlled by the user
   vec2f defaultRange; //< the default value range being displayed on the GUI
-  int controlpointSelection = 0; // select what type of control point is added
+  int controlpointSelection = 0; //< select what type of control point is added
 
   /* The 2d palette texture on the GPU for displaying the color map preview in the UI. */
   GLuint tfn_palette;
@@ -78,7 +78,10 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   vec2f value_range_percentage{0.f, 100.f};
 
   // The filename input text buffer
-  std::vector<char> tfn_text_buffer; 
+  std::vector<char> tfn_text_buffer;
+
+  // index of previously drawn point when using freehand mode
+  int prevPtIdx = 0; 
 
  public:
   ~TransferFunctionWidget();
@@ -359,7 +362,14 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
         current_alphapoints->erase(current_alphapoints->begin() + i);
         tfn_changed = true;
       }
-    } 
+    }
+    // delete all points (double click scroll wheel)
+    if (ImGui::IsMouseDoubleClicked(2) && ImGui::IsAnyItemHovered()) {
+      current_alphapoints->clear();
+      current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
+      current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
+      tfn_changed = true;
+    }
     // drag alpha control point
     else if (ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
@@ -409,8 +419,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
   ImGui::SetCursorScreenPos(ImVec2(cursor.x + margin.x, cursor.y - size.y - margin.z));
   if (size.x > 0 && size.y > 0) ImGui::InvisibleButton("##tfn_palette_alpha", ImVec2(size.x, size.y));
   // add alpha point
-  if ((controlpointSelection == 0 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) ||
-      (controlpointSelection == 2 && ImGui::IsMouseDragging(0) && ImGui::IsItemHovered())) {
+  if (controlpointSelection == 0 && ImGui::IsMouseDoubleClicked(0) && ImGui::IsItemHovered()) {
     const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
     const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
     int il, ir;
@@ -441,6 +450,33 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     obj.mean = x; obj.sigma = 0.06; obj.setHeight(y); obj.update();
     current_gaussianobjects->insert(current_gaussianobjects->begin() + (ir/3), obj);
     tfn_changed = true;
+  }
+  // add freehand
+  if (controlpointSelection == 2 && ImGui::IsMouseDragging(0) && ImGui::IsItemHovered()) {
+    const float x = clamp((mouse_x - cursor.x - margin.x - scroll_x) / (float)size.x, 0.f, 1.f);
+    const float y = clamp(-(mouse_y - cursor.y + margin.x - scroll_y) / (float)size.y, 0.f, 1.f);
+    int il, ir;
+    if (current_alphapoints->size() == 0) {
+      il = 0; ir = 1;
+      current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
+      current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
+    } else {
+      std::tie(il, ir) = find_interval(current_alphapoints, x);
+    }
+    AlphaPoint pt;
+    pt.pos.x = x, pt.pos.y = y;
+    current_alphapoints->insert(current_alphapoints->begin() + ir, pt);
+    // clear existing points if drawing over or under them
+    prevPtIdx = (prevPtIdx != 0 && prevPtIdx + 1 <= ir) ?
+                current_alphapoints->erase(current_alphapoints->begin() + (prevPtIdx + 1), current_alphapoints->begin() + ir)
+                - current_alphapoints->begin() :
+                ir;
+
+    tfn_changed = true;
+  }
+  // reset prevPtIdx when done drawing
+  if (!ImGui::IsMouseDragging(0) && prevPtIdx != 0) {
+    prevPtIdx = 0;
   }
   return vec4f();
 }
@@ -761,12 +797,12 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
     ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
     ImGui::InvisibleButton(("##GaussianControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
     ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
-    // dark bounding box
-    draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
-    // white background
-    draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
+    // white bounding box
+    draw_list->AddCircleFilled(pos, alpha_len, 0xFFD8D8D8);
+    // dark background
+    draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFF565656);
     // highlight
-    draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
+    draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFFD8D8D8 : 0xFF051c33);
 
     // delete gaussian object
     if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
