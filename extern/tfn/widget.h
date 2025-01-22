@@ -915,6 +915,13 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
   // draw circles
   for (int i = 0; i < scalingObject->scalingPoints.size(); ++i) {
     const ImVec2 pos(c.x + s.x * scalingObject->scalingPoints[i].x + m.x, c.y - s.y * scalingObject->scalingPoints[i].y - m.z);
+    // draw lines connecting circles
+    // this code assumes scaling objects always has at least 2 points
+    if (i != scalingObject->scalingPoints.size() - 1) {
+      ImVec2 nextPos(c.x + s.x * scalingObject->scalingPoints[i + 1].x + m.x, c.y - s.y * scalingObject->scalingPoints[i + 1].y - m.z);
+      draw_list->AddLine(pos, nextPos, IM_COL32_BLACK, 3.0f);
+    }
+    // drawing circles after lines so that the circle is drawn on top
     ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
     ImGui::InvisibleButton(("##ScalingControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
     ImGui::SetCursorScreenPos(ImVec2(c.x, c.y));
@@ -927,6 +934,20 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
     // drag scaling control point
     if (ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
+      // TODO
+      // If holding shift, grab larger mouse movement delta, and then lock it in the appropriate axis when moving the point
+      // Currently, ImGui is not seeing any keyboard inputs
+      // bool* keysPressed = &ImGui::GetIO().KeysDown[0];
+      // for (int i = 0; i < 512; i++) {
+      //   if (*(keysPressed + i) == 1) {
+      //     std::cout << "pressed: " << i;
+      //   }
+      // }
+      // if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Space))) {
+      //   std::cout << "Space is pressed" << std::endl;
+      //   if (delta.x > delta.y) delta.y = 0;
+      //   else delta.x = 0;
+      // }
       scalingObject->scalingPoints[i].y -= delta.y / s.y;
       scalingObject->scalingPoints[i].y = clamp(scalingObject->scalingPoints[i].y, 0.0f, 1.0f);
       if (i > 0 && i < scalingObject->scalingPoints.size() - 1) {
@@ -940,7 +961,3 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
 }
 
 } // namespace tfn
-
-// TODO
-// black lines to connect points
-// if holding shift, grab larger mouse movement delta, and then lock it in the appropriate axis when moving the point
