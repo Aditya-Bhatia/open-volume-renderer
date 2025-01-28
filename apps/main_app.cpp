@@ -316,6 +316,11 @@ public:
           }
         }
         break;
+      // shift
+      case 340:
+        std::cout << "Scaling axis lock mode: ";
+        widget.set_keyboard_input("shift");
+        break;
       case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(GLFWindow::handle, GLFW_TRUE);
       default:

@@ -90,6 +90,9 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   // index of previously drawn point when using freehand mode
   int prevPtIdx = 0; 
 
+  // flag for keys pressed
+  bool shiftIsPressed = false;
+
  public:
   ~TransferFunctionWidget();
   TransferFunctionWidget(const setter &);
@@ -115,6 +118,9 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   /* Create a new TFN profile */
   void add_tfn(const tfn::TransferFunctionCore& core, const std::string &name);
   void add_tfn(const list4f &, const list2f &, const std::string &name, const std::string &fileName);
+
+  /* Set keyboard input information from the main app */
+  void set_keyboard_input(const std::string &key);
   
  private:
   /* Change selection */
@@ -826,6 +832,15 @@ inline void TransferFunctionWidget::set_default_tfns()
   }
 };
 
+inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
+{
+  if (key == "shift") {
+    std::string flag_str = shiftIsPressed ? "off" : "on";
+    std::cout << flag_str << std::endl;
+    shiftIsPressed = !shiftIsPressed;
+  }
+}
+
 inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(
     void *_draw_list,
     const tfn::vec3f &margin, /* left, right, spacing*/
@@ -934,20 +949,10 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
     // drag scaling control point
     if (ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
-      // TODO
-      // If holding shift, grab larger mouse movement delta, and then lock it in the appropriate axis when moving the point
-      // Currently, ImGui is not seeing any keyboard inputs
-      // bool* keysPressed = &ImGui::GetIO().KeysDown[0];
-      // for (int i = 0; i < 512; i++) {
-      //   if (*(keysPressed + i) == 1) {
-      //     std::cout << "pressed: " << i;
-      //   }
-      // }
-      // if (ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Space))) {
-      //   std::cout << "Space is pressed" << std::endl;
-      //   if (delta.x > delta.y) delta.y = 0;
-      //   else delta.x = 0;
-      // }
+      if (shiftIsPressed) {
+        if (abs(delta.x) > abs(delta.y)) delta.y = 0;
+        else delta.x = 0;
+      }
       scalingObject->scalingPoints[i].y -= delta.y / s.y;
       scalingObject->scalingPoints[i].y = clamp(scalingObject->scalingPoints[i].y, 0.0f, 1.0f);
       if (i > 0 && i < scalingObject->scalingPoints.size() - 1) {
