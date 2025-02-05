@@ -10,6 +10,7 @@ struct ScalingObject {
   private:
     float* slopes = new float[3];
     float* intercepts = new float[2];
+    bool scalingActive = false;
 
     static ScalingObject* instance;
 
@@ -34,6 +35,10 @@ struct ScalingObject {
         instance = new ScalingObject();
       }
       return instance;
+    }
+
+    bool* ScalingStatus() {
+      return &scalingActive;
     }
 
     float GetScaledOutput(float x_pos) {

@@ -46,7 +46,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   int controlpointSelection = 0; //< select what type of control point is added
 
   bool scalingObjectWindow = false; //< test
-  bool useScaling = false;
+  bool* useScaling;
   float displayed_input = 0.0;
   float displayed_output = 0.0;
 
@@ -397,7 +397,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
       tfn_changed = true;
 
       if (scalingObjectWindow) {
-        if (useScaling) {
+        if (*useScaling) {
           ScalingObject* scalingObject = ScalingObject::GetScalingObject();
           displayed_input = size.x * (*current_alphapoints)[i].pos.x;
           displayed_output = size.x * scalingObject->GetScaledOutput((*current_alphapoints)[i].pos.x);
@@ -548,7 +548,7 @@ inline void TransferFunctionWidget::draw_tfn_editor(const float margin, float he
   canvas_y += 4.f * color_len + margin;
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
 
-  if (useScaling) {
+  if (*useScaling) {
     draw_tfn_scaling_object_control_points(margin, ImGui::GetContentRegionAvail().y - 30.f);
   }
 }
@@ -666,7 +666,9 @@ void TransferFunctionWidget::build_gui()
       ImGui::End();
     }
 
-    ImGui::Checkbox(" use scaling", &useScaling);
+    ScalingObject* scalingObject = ScalingObject::GetScalingObject();
+    useScaling = scalingObject->ScalingStatus(); 
+    ImGui::Checkbox(" use scaling", useScaling);
   }
 
   ImGui::EndGroup();
@@ -674,7 +676,7 @@ void TransferFunctionWidget::build_gui()
   //------------ Transfer Function Editor -------------
 
   ImGui::Spacing();
-  if (useScaling) {
+  if (*useScaling) {
     draw_tfn_editor(11.f, (ImGui::GetContentRegionAvail().y - 60.f)/2);
   }
   else {
@@ -723,10 +725,28 @@ inline void TransferFunctionWidget::render(int tfn_w, int tfn_h)
     std::vector<vec3f> colors(tfn_w, 1.f);
     std::vector<vec2f> alpha(tfn_w, 1.f);
     const float step = 1.0f / (float)(tfn_w - 1);
+    ScalingObject* scalingObject = ScalingObject::GetScalingObject();
+    bool* scalingActive = scalingObject->ScalingStatus();
     for (int i = 0; i < tfn_w; ++i) {
       const float p = clamp(i * step, 0.0f, 1.0f);
+      float scaled_p = 0.0f;
       int ir, il;
-      /* color */
+      if (*scalingActive) {
+        scaled_p = scalingObject->GetScaledOutput(p);
+        /* scaled color */
+        {
+          std::tie(il, ir) = find_interval(current_colorpoints, scaled_p);
+          float pl = current_colorpoints->at(il).position;
+          float pr = current_colorpoints->at(ir).position;
+          const float r = lerp(current_colorpoints->at(il).color.x, current_colorpoints->at(ir).color.x, pl, pr, scaled_p);
+          const float g = lerp(current_colorpoints->at(il).color.y, current_colorpoints->at(ir).color.y, pl, pr, scaled_p);
+          const float b = lerp(current_colorpoints->at(il).color.z, current_colorpoints->at(ir).color.z, pl, pr, scaled_p);
+          colors[i].x = r;
+          colors[i].y = g;
+          colors[i].z = b;
+        }
+      }
+      /* unscaled color */
       {
         std::tie(il, ir) = find_interval(current_colorpoints, p);
         float pl = current_colorpoints->at(il).position;
@@ -734,9 +754,11 @@ inline void TransferFunctionWidget::render(int tfn_w, int tfn_h)
         const float r = lerp(current_colorpoints->at(il).color.x, current_colorpoints->at(ir).color.x, pl, pr, p);
         const float g = lerp(current_colorpoints->at(il).color.y, current_colorpoints->at(ir).color.y, pl, pr, p);
         const float b = lerp(current_colorpoints->at(il).color.z, current_colorpoints->at(ir).color.z, pl, pr, p);
-        colors[i].x = r;
-        colors[i].y = g;
-        colors[i].z = b;
+        if (!(*scalingActive)) {
+          colors[i].x = r;
+          colors[i].y = g;
+          colors[i].z = b;
+        }
         /* palette */
         palette[i * 4 + 0] = static_cast<uint8_t>(r * 255.f);
         palette[i * 4 + 1] = static_cast<uint8_t>(g * 255.f);
@@ -747,8 +769,8 @@ inline void TransferFunctionWidget::render(int tfn_w, int tfn_h)
       {
         // FIXME: This will result in artifacts when tfn.resolution() < tfn_w
         const vec4f* colors = tfns[tfn_selection].data();
-        const float a = colors[(int)(tfns[tfn_selection].resolution() * p)].w; 
-        alpha[i].x = p;
+        const float a = colors[(int)(tfns[tfn_selection].resolution() * p)].w;                
+        alpha[i].x = scaled_p;
         alpha[i].y = a;
       }
     }
