@@ -321,6 +321,10 @@ public:
         std::cout << "Scaling axis lock mode: ";
         widget.set_keyboard_input("shift");
         break;
+      case 341:
+        std::cout << "Adjust scaling object mode: ";
+        widget.set_keyboard_input("ctrl");
+        break;
       case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(GLFWindow::handle, GLFW_TRUE);
       default:

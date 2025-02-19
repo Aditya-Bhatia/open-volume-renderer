@@ -44,11 +44,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   vec2f valueRange; //< the current value range controlled by the user
   vec2f defaultRange; //< the default value range being displayed on the GUI
   int controlpointSelection = 0; //< select what type of control point is added
-
-  bool scalingObjectWindow = false; //< test
-  bool* useScaling;
-  float displayed_input = 0.0;
-  float displayed_output = 0.0;
+  bool* useScaling; //< uses scaling object
 
   /* The 2d palette texture on the GPU for displaying the color map preview in the UI. */
   GLuint tfn_palette;
@@ -92,6 +88,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
 
   // flag for keys pressed
   bool shiftIsPressed = false;
+  bool ctrlIsPressed = false;
 
  public:
   ~TransferFunctionWidget();
@@ -134,8 +131,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   tfn::vec4f draw_tfn_editor__alpha_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
   tfn::vec4f draw_tfn_editor__interaction_blocks(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &, const float &);
   tfn::vec4f draw_tfn_gaussian_alpha_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
-
-  tfn::vec4f draw_tfn_scaling_object_control_points(const float, float);
+  tfn::vec4f draw_tfn_scaling_object_control_points(void *_draw_list, const tfn::vec3f &, const tfn::vec2f &, const tfn::vec4f &, const float &);
 };
 
 inline void TransferFunctionWidget::select_tfn(int selection)
@@ -386,7 +382,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
       tfn_changed = true;
     }
     // drag alpha control point
-    else if (ImGui::IsItemActive()) {
+    else if (!ctrlIsPressed && ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
       (*current_alphapoints)[i].pos.y -= delta.y / size.y;
       (*current_alphapoints)[i].pos.y = clamp((*current_alphapoints)[i].pos.y, 0.0f, 1.0f);
@@ -395,18 +391,6 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
         (*current_alphapoints)[i].pos.x = clamp((*current_alphapoints)[i].pos.x, (*current_alphapoints)[i - 1].pos.x, (*current_alphapoints)[i + 1].pos.x);
       }
       tfn_changed = true;
-
-      if (scalingObjectWindow) {
-        if (*useScaling) {
-          ScalingObject* scalingObject = ScalingObject::GetScalingObject();
-          displayed_input = size.x * (*current_alphapoints)[i].pos.x;
-          displayed_output = size.x * scalingObject->GetScaledOutput((*current_alphapoints)[i].pos.x);
-        }
-        else {
-          displayed_input = size.x * (*current_alphapoints)[i].pos.x;
-          displayed_output = size.y * (*current_alphapoints)[i].pos.y;
-        }
-      }
     }
   }
   return vec4f();
@@ -542,15 +526,16 @@ inline void TransferFunctionWidget::draw_tfn_editor(const float margin, float he
   if (current_gaussianobjects->size() > 0) {
     draw_tfn_gaussian_alpha_control_points(draw_list, m, s, c, alpha_len);
   }
+  // draw scaling function
+  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  if (*useScaling) {
+    draw_tfn_scaling_object_control_points(draw_list, m, s, c, alpha_len);
+  }
   // draw background interaction
   draw_tfn_editor__interaction_blocks(draw_list, m, s, c, color_len, alpha_len);
   // update cursors
   canvas_y += 4.f * color_len + margin;
   ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
-
-  if (*useScaling) {
-    draw_tfn_scaling_object_control_points(margin, ImGui::GetContentRegionAvail().y - 30.f);
-  }
 }
 
 inline bool TransferFunctionWidget::build(bool *p_open, bool do_not_render_textures)
@@ -650,25 +635,11 @@ void TransferFunctionWidget::build_gui()
 
     ImGui::Combo(" control type", &controlpointSelection, "alpha_point\0gaussian\0freehand\0");
 
-    ImGui::Checkbox(" show scaling output window", &scalingObjectWindow);
-    if (scalingObjectWindow) {
-      bool p_open = true;
-      if (!ImGui::Begin("Scaling", &p_open, ImGuiWindowFlags_AlwaysAutoResize))
-      {
-        ImGui::End();
-        return;
-      }
-
-      ImGui::Text("input value: ");
-      ImGui::Text(std::to_string(displayed_input).c_str());
-      ImGui::Text("output value: ");
-      ImGui::Text(std::to_string(displayed_output).c_str());
-      ImGui::End();
-    }
-
     ScalingObject* scalingObject = ScalingObject::GetScalingObject();
-    useScaling = scalingObject->ScalingStatus(); 
+    useScaling = scalingObject->ScalingStatus();
+    bool prevUseScaling = *useScaling; //< to update tfn everytime useScaling is changed 
     ImGui::Checkbox(" use scaling", useScaling);
+    if (prevUseScaling != *useScaling) { tfn_changed = true; }
   }
 
   ImGui::EndGroup();
@@ -676,12 +647,7 @@ void TransferFunctionWidget::build_gui()
   //------------ Transfer Function Editor -------------
 
   ImGui::Spacing();
-  if (*useScaling) {
-    draw_tfn_editor(11.f, (ImGui::GetContentRegionAvail().y - 60.f)/2);
-  }
-  else {
-    draw_tfn_editor(11.f, ImGui::GetContentRegionAvail().y - 60.f);
-  }
+  draw_tfn_editor(11.f, ImGui::GetContentRegionAvail().y - 60.f);
 
   //------------ End Transfer Function Editor ---------
 }
@@ -861,9 +827,14 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
     std::cout << flag_str << std::endl;
     shiftIsPressed = !shiftIsPressed;
   }
+  else if (key == "ctrl") {
+    std::string flag_str = ctrlIsPressed ? "off" : "on";
+    std::cout << flag_str << std::endl;
+    ctrlIsPressed = !ctrlIsPressed;
+  }
 }
 
-inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(
+inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(/**/
     void *_draw_list,
     const tfn::vec3f &margin, /* left, right, spacing*/
     const tfn::vec2f &size,
@@ -933,55 +904,50 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
 }
 
 
-inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points(const float margin, float height)
+inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points(/**/
+    void *_draw_list,
+    const tfn::vec3f &margin, /* left, right, spacing*/
+    const tfn::vec2f &size,
+    const tfn::vec4f &cursor,
+    const float &alpha_len)
 {
-  ImDrawList *draw_list = ImGui::GetWindowDrawList();
-  const float canvas_x = ImGui::GetCursorScreenPos().x;
-  float canvas_y = ImGui::GetCursorScreenPos().y;
-  const float width = ImGui::GetContentRegionAvail().x - 2.f * margin;
-  const float color_len = 10.f;
-  const float alpha_len = 10.f;
-  // debug
-  const tfn::vec3f m{margin, margin, margin};
-  const tfn::vec2f s{width, height};
-  tfn::vec4f c = {canvas_x, canvas_y, ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y};
-  c = draw_tfn_editor__preview_texture(draw_list, m, s, c);
-  canvas_y = c.y;
-  ImGui::SetCursorScreenPos(ImVec2(canvas_x, canvas_y));
+  auto draw_list = (ImDrawList *)_draw_list;
   ScalingObject* scalingObject = ScalingObject::GetScalingObject();
   // draw circles
   for (int i = 0; i < scalingObject->scalingPoints.size(); ++i) {
-    const ImVec2 pos(c.x + s.x * scalingObject->scalingPoints[i].x + m.x, c.y - s.y * scalingObject->scalingPoints[i].y - m.z);
+    const ImVec2 pos(cursor.x + size.x * scalingObject->scalingPoints[i].x + margin.x, cursor.y - size.y * scalingObject->scalingPoints[i].y - margin.z);
     // draw lines connecting circles
     // this code assumes scaling objects always has at least 2 points
     if (i != scalingObject->scalingPoints.size() - 1) {
-      ImVec2 nextPos(c.x + s.x * scalingObject->scalingPoints[i + 1].x + m.x, c.y - s.y * scalingObject->scalingPoints[i + 1].y - m.z);
+      ImVec2 nextPos(cursor.x + size.x * scalingObject->scalingPoints[i + 1].x + margin.x, cursor.y - size.y * scalingObject->scalingPoints[i + 1].y - margin.z);
       draw_list->AddLine(pos, nextPos, IM_COL32_BLACK, 3.0f);
     }
-    // drawing circles after lines so that the circle is drawn on top
-    ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
-    ImGui::InvisibleButton(("##ScalingControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
-    ImGui::SetCursorScreenPos(ImVec2(c.x, c.y));
-    // dark bounding box
-    draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
-    // white background
-    draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
-    // highlight
-    draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
-    // drag scaling control point
-    if (ImGui::IsItemActive()) {
-      ImVec2 delta = ImGui::GetIO().MouseDelta;
-      if (shiftIsPressed) {
-        if (abs(delta.x) > abs(delta.y)) delta.y = 0;
-        else delta.x = 0;
+    if (ctrlIsPressed) {
+      // drawing circles after lines so that the circle is drawn on top
+      ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
+      ImGui::InvisibleButton(("##ScalingControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
+      ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y));
+      // dark bounding box
+      draw_list->AddCircleFilled(pos, alpha_len, 0xFF565656);
+      // white background
+      draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xCCFF0000);
+      // highlight
+      draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xCCFF0000);
+      // drag scaling control point
+      if (ImGui::IsItemActive()) {
+        ImVec2 delta = ImGui::GetIO().MouseDelta;
+        if (shiftIsPressed) {
+          if (abs(delta.x) > abs(delta.y)) delta.y = 0;
+          else delta.x = 0;
+        }
+        scalingObject->scalingPoints[i].y -= delta.y / size.y;
+        scalingObject->scalingPoints[i].y = clamp(scalingObject->scalingPoints[i].y, 0.0f, 1.0f);
+        if (i > 0 && i < scalingObject->scalingPoints.size() - 1) {
+          scalingObject->scalingPoints[i].x += delta.x / size.x;
+          scalingObject->scalingPoints[i].x = clamp(scalingObject->scalingPoints[i].x, scalingObject->scalingPoints[i - 1].x, scalingObject->scalingPoints[i + 1].x);
+        }
+        tfn_changed = true;
       }
-      scalingObject->scalingPoints[i].y -= delta.y / s.y;
-      scalingObject->scalingPoints[i].y = clamp(scalingObject->scalingPoints[i].y, 0.0f, 1.0f);
-      if (i > 0 && i < scalingObject->scalingPoints.size() - 1) {
-        scalingObject->scalingPoints[i].x += delta.x / s.x;
-        scalingObject->scalingPoints[i].x = clamp(scalingObject->scalingPoints[i].x, scalingObject->scalingPoints[i - 1].x, scalingObject->scalingPoints[i + 1].x);
-      }
-      tfn_changed = true;
     }
   }
   return vec4f();
