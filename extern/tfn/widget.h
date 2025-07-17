@@ -379,6 +379,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
       current_alphapoints->clear();
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
+      current_gaussianobjects->clear();
       tfn_changed = true;
     }
     // drag alpha control point
