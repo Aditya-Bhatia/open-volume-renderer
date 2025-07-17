@@ -321,10 +321,18 @@ public:
         std::cout << "Scaling axis lock mode: ";
         widget.set_keyboard_input("shift");
         break;
+      // ctrl
       case 341:
         std::cout << "Adjust scaling object mode: ";
         widget.set_keyboard_input("ctrl");
         break;
+      // shift + backspace
+      case 259:
+        if (mods == 1) { // shift is pressed
+          std::cout << "Deleting all points and gaussians" << std::endl;
+          widget.set_keyboard_input("delete");
+          break;
+        }
       case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(GLFWindow::handle, GLFW_TRUE);
       default:

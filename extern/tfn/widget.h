@@ -89,6 +89,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   // flag for keys pressed
   bool shiftIsPressed = false;
   bool ctrlIsPressed = false;
+  bool deletePoints = false;
 
  public:
   ~TransferFunctionWidget();
@@ -374,12 +375,13 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
         tfn_changed = true;
       }
     }
-    // delete all points (double click scroll wheel)
-    if (ImGui::IsMouseDoubleClicked(2) && ImGui::IsAnyItemHovered()) {
+    // delete all points (double click scroll wheel or use keyboard shortcut shift + backspace)
+    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered()) {
       current_alphapoints->clear();
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
       current_gaussianobjects->clear();
+      deletePoints = false;
       tfn_changed = true;
     }
     // drag alpha control point
@@ -833,6 +835,9 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
     std::cout << flag_str << std::endl;
     ctrlIsPressed = !ctrlIsPressed;
   }
+  else if (key == "delete") {
+    deletePoints = true;
+  }
 }
 
 inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(/**/
@@ -869,7 +874,16 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
         auto it = (*current_gaussianobjects).begin();
         (*current_gaussianobjects).erase(it + (i / 3));
         tfn_changed = true;
-    } 
+    }
+    // delete all points (double click scroll wheel or use keyboard shortcut shift + backspace)
+    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered()) {
+      current_alphapoints->clear();
+      current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
+      current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
+      current_gaussianobjects->clear();
+      deletePoints = false;
+      tfn_changed = true;
+    }
     else if (ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
       if (i % 3 == 0) {
