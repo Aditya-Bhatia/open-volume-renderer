@@ -401,9 +401,13 @@ public:
       ImVec2 window_pos = ImVec2((corner & 1) ? io.DisplaySize.x - DISTANCE : DISTANCE, (corner & 2) ? io.DisplaySize.y - DISTANCE : DISTANCE);
       ImVec2 window_pos_pivot = ImVec2((corner & 1) ? 1.0f : 0.0f, (corner & 2) ? 1.0f : 0.0f);
       ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-
+      // change window background colour
+      ImGuiStyle& style = ImGui::GetStyle();
+      ImVec4* colors = style.Colors;
+      colors[ImGuiCol_WindowBg] = ImVec4(0.188, 0.188, 0.188, 0.9f);
+      colors[ImGuiCol_ChildBg] = ImVec4(0.188, 0.188, 0.188, 0.9f);
+      
       if (ImGui::Begin("Control Panel", NULL)) {
-
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None; 
         if (ImGui::BeginTabBar("ControlPanelTabBar", tab_bar_flags))
         {

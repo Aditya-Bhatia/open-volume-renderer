@@ -112,6 +112,8 @@ namespace glfwapp
 #else
     ImGui_ImplOpenGL2_Init();
 #endif
+    ImGuiIO& io = ImGui::GetIO();
+    io.Fonts->AddFontFromFileTTF("../apps/fonts/Roboto-Medium.ttf", 18.0f);
   }
 
   /*! callback for a window resizing event */
