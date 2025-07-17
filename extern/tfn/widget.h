@@ -87,7 +87,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   int prevPtIdx = 0; 
 
   // flag for keys pressed
-  bool shiftIsPressed = false;
+  bool lockIsPressed = false;
   bool ctrlIsPressed = false;
   bool deletePoints = false;
 
@@ -825,10 +825,10 @@ inline void TransferFunctionWidget::set_default_tfns()
 
 inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
 {
-  if (key == "shift") {
-    std::string flag_str = shiftIsPressed ? "off" : "on";
+  if (key == "lock") {
+    std::string flag_str = lockIsPressed ? "off" : "on";
     std::cout << flag_str << std::endl;
-    shiftIsPressed = !shiftIsPressed;
+    lockIsPressed = !lockIsPressed;
   }
   else if (key == "ctrl") {
     std::string flag_str = ctrlIsPressed ? "off" : "on";
@@ -951,7 +951,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
       // drag scaling control point
       if (ImGui::IsItemActive()) {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
-        if (shiftIsPressed) {
+        if (lockIsPressed) {
           if (abs(delta.x) > abs(delta.y)) delta.y = 0;
           else delta.x = 0;
         }

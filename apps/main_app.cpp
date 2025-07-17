@@ -316,11 +316,13 @@ public:
           }
         }
         break;
-      // shift
-      case 340:
-        std::cout << "Scaling axis lock mode: ";
-        widget.set_keyboard_input("shift");
-        break;
+      case 'l':
+      case 'L':
+        if (mods == 1) { // shift is pressed
+          std::cout << "Scaling axis lock mode: ";
+          widget.set_keyboard_input("lock");
+          break;
+        }
       // ctrl
       case 341:
         std::cout << "Adjust scaling object mode: ";
