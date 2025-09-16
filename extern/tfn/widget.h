@@ -46,6 +46,8 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   int controlpointSelection = 0; //< select what type of control point is added
   bool* useScaling; //< uses scaling object
 
+  std::string logText = ""; /* Show the user what action they did when they use a shortcut */
+
   /* The 2d palette texture on the GPU for displaying the color map preview in the UI. */
   GLuint tfn_palette;
 
@@ -119,6 +121,8 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
 
   /* Set keyboard input information from the main app */
   void set_keyboard_input(const std::string &key);
+  /* Set text to be displayed under the command log */
+  void set_log_text(const std::string &text);
   
  private:
   /* Change selection */
@@ -653,6 +657,9 @@ void TransferFunctionWidget::build_gui()
   draw_tfn_editor(11.f, ImGui::GetContentRegionAvail().y - 60.f);
 
   //------------ End Transfer Function Editor ---------
+
+  ImGui::Text("Command Log");
+  ImGui::Text(logText.c_str());
 }
 
 inline void renderTFNTexture(GLuint &tex, int width, int height)
@@ -827,17 +834,24 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
 {
   if (key == "lock") {
     std::string flag_str = lockIsPressed ? "off" : "on";
+    logText += flag_str;
     std::cout << flag_str << std::endl;
     lockIsPressed = !lockIsPressed;
   }
   else if (key == "ctrl") {
     std::string flag_str = ctrlIsPressed ? "off" : "on";
+    logText += flag_str;
     std::cout << flag_str << std::endl;
     ctrlIsPressed = !ctrlIsPressed;
   }
   else if (key == "delete") {
     deletePoints = true;
   }
+}
+
+inline void TransferFunctionWidget::set_log_text(const std::string &text)
+{
+  logText = text;
 }
 
 inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(/**/

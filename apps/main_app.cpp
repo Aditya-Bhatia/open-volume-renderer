@@ -284,28 +284,33 @@ public:
     {
       case 'f':
       case 'F':
+        widget.set_log_text("Entering 'fly' mode");
         std::cout << "Entering 'fly' mode" << std::endl;
         if (flyModeManip)
           cameraFrameManip = flyModeManip;
         break;
       case 'i':
       case 'I':
+        widget.set_log_text("Entering 'inspect' mode");
         std::cout << "Entering 'inspect' mode" << std::endl;
         if (inspectModeManip)
           cameraFrameManip = inspectModeManip;
         break;
       case 'g':
       case 'G':
+        widget.set_log_text("Toggling GUI");
         std::cout << "Toggling GUI" << std::endl;
         gui_enabled = !gui_enabled;
         break;
       case 'p':
       case 'P':
+        widget.set_log_text("Toggling performance GUI");
         std::cout << "Toggling performance GUI" << std::endl;
         gui_performance_enabled = !gui_performance_enabled;
         break;
       case 's':
       case 'S':
+        widget.set_log_text("Saving screenshot");
         std::cout << "Saving screenshot" << std::endl;
         {
           const FrameOutputs& out = frame_outputs.get();
@@ -319,22 +324,27 @@ public:
       case 'l':
       case 'L':
         if (mods == 1) { // shift is pressed
+          widget.set_log_text("Scaling axis lock mode: ");
           std::cout << "Scaling axis lock mode: ";
           widget.set_keyboard_input("lock");
           break;
         }
+        break;
       // ctrl
       case 341:
+        widget.set_log_text("Adjust scaling object mode: ");
         std::cout << "Adjust scaling object mode: ";
         widget.set_keyboard_input("ctrl");
         break;
       // shift + backspace
       case 259:
         if (mods == 1) { // shift is pressed
+          widget.set_log_text("Deleting all points and gaussians");
           std::cout << "Deleting all points and gaussians" << std::endl;
           widget.set_keyboard_input("delete");
           break;
         }
+        break;
       case GLFW_KEY_ESCAPE:
         glfwSetWindowShouldClose(GLFWindow::handle, GLFW_TRUE);
       default:
