@@ -46,7 +46,12 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   int controlpointSelection = 0; //< select what type of control point is added
   bool* useScaling; //< uses scaling object
 
-  std::string logText = ""; /* Show the user what action they did when they use a shortcut */
+  struct LogEntry {
+    int id;
+    std::string message;
+  };
+  std::vector<LogEntry> logText; /* Show the user what action they did when they use a shortcut */
+  int logCounter = 0;
 
   /* The 2d palette texture on the GPU for displaying the color map preview in the UI. */
   GLuint tfn_palette;
@@ -658,8 +663,24 @@ void TransferFunctionWidget::build_gui()
 
   //------------ End Transfer Function Editor ---------
 
-  ImGui::Text("Command Log");
-  ImGui::Text(logText.c_str());
+  ImGui::Spacing();
+  ImGui::SetWindowFontScale(1.2f);
+  ImGui::Text("Command Log:");
+  ImGui::SetWindowFontScale(1.0f);
+
+  if (!logText.empty()) {
+    const auto& latest = logText.back();
+    ImGui::TextWrapped("[%d] %s", latest.id, latest.message.c_str());
+
+    // Collapsible section for older logs
+    if (logText.size() > 1 &&
+        ImGui::CollapsingHeader("Show older logs")) {
+        for (int i = static_cast<int>(logText.size()) - 2; i >= 0; --i) {
+            ImGui::Dummy(ImVec2(0.0f, 3.0f)); // spacing between logs
+            ImGui::TextWrapped("[%d] %s", logText[i].id, logText[i].message.c_str());
+        }
+    }
+  }
 }
 
 inline void renderTFNTexture(GLuint &tex, int width, int height)
@@ -834,13 +855,13 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
 {
   if (key == "lock") {
     std::string flag_str = lockIsPressed ? "off" : "on";
-    logText += flag_str;
+    logText.back().message += flag_str;
     std::cout << flag_str << std::endl;
     lockIsPressed = !lockIsPressed;
   }
   else if (key == "ctrl") {
     std::string flag_str = ctrlIsPressed ? "off" : "on";
-    logText += flag_str;
+    logText.back().message += flag_str;
     std::cout << flag_str << std::endl;
     ctrlIsPressed = !ctrlIsPressed;
   }
@@ -851,7 +872,10 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
 
 inline void TransferFunctionWidget::set_log_text(const std::string &text)
 {
-  logText = text;
+  if (logText.size() >= 5) {
+    logText.erase(logText.begin()); // remove oldest
+  }
+  logText.push_back({++logCounter, text});
 }
 
 inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points(/**/
