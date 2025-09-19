@@ -398,6 +398,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
       current_gaussianobjects->clear();
+      set_log_text("Deleting all points and gaussians");
       deletePoints = false;
       tfn_changed = true;
     }
@@ -937,6 +938,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
       current_gaussianobjects->clear();
+      set_log_text("Deleting all points and gaussians");
       deletePoints = false;
       tfn_changed = true;
     }
