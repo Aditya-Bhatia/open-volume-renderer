@@ -365,8 +365,16 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
     const float &alpha_len)
 {
   auto draw_list = (ImDrawList *)_draw_list;
+  int total = (int)current_alphapoints->size();
+  int maxVisible = 15;
+
+  // Always show <= maxVisible points
+  int step = 1;
+  if (total > maxVisible) {
+    step = (int)std::ceil((float)total / maxVisible);
+  }
   // draw circles
-  for (int i = 0; i < current_alphapoints->size(); ++i) {
+  for (int i = 0; i < total; i += step) {
     const ImVec2 pos(cursor.x + size.x * (*current_alphapoints)[i].pos.x + margin.x, cursor.y - size.y * (*current_alphapoints)[i].pos.y - margin.z);
     ImGui::SetCursorScreenPos(ImVec2(pos.x - alpha_len, pos.y - alpha_len));
     ImGui::InvisibleButton(("##AlphaControl-" + std::to_string(i)).c_str(), ImVec2(2.f * alpha_len, 2.f * alpha_len));
@@ -396,11 +404,17 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
     // drag alpha control point
     else if (!ctrlIsPressed && ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
-      (*current_alphapoints)[i].pos.y -= delta.y / size.y;
-      (*current_alphapoints)[i].pos.y = clamp((*current_alphapoints)[i].pos.y, 0.0f, 1.0f);
-      if (i > 0 && i < current_alphapoints->size() - 1) {
-        (*current_alphapoints)[i].pos.x += delta.x / size.x;
-        (*current_alphapoints)[i].pos.x = clamp((*current_alphapoints)[i].pos.x, (*current_alphapoints)[i - 1].pos.x, (*current_alphapoints)[i + 1].pos.x);
+
+      int clusterRadius = 2; // move 2 points on each side
+      for (int j = std::max(0, i - clusterRadius); j <= std::min((int)current_alphapoints->size() - 1, i + clusterRadius); j++) {
+        float weight = 1.0f - (float)std::abs(j - i) / (clusterRadius + 1);
+        (*current_alphapoints)[j].pos.y -= weight * delta.y / size.y;
+        (*current_alphapoints)[j].pos.y = clamp((*current_alphapoints)[j].pos.y, 0.0f, 1.0f);
+
+        if (j > 0 && j < current_alphapoints->size() - 1) {
+          (*current_alphapoints)[j].pos.x += weight * delta.x / size.x;
+          (*current_alphapoints)[j].pos.x = clamp((*current_alphapoints)[j].pos.x, (*current_alphapoints)[j - 1].pos.x, (*current_alphapoints)[j + 1].pos.x);
+        }
       }
       tfn_changed = true;
     }
@@ -488,12 +502,16 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__interaction_blocks(/*
     }
     AlphaPoint pt;
     pt.pos.x = x, pt.pos.y = y;
-    current_alphapoints->insert(current_alphapoints->begin() + ir, pt);
-    // clear existing points if drawing over or under them
-    prevPtIdx = (prevPtIdx != 0 && prevPtIdx + 1 <= ir) ?
-                current_alphapoints->erase(current_alphapoints->begin() + (prevPtIdx + 1), current_alphapoints->begin() + ir)
-                - current_alphapoints->begin() :
-                ir;
+    auto prevPoint = *(current_alphapoints->begin() + il);
+
+    if (abs(prevPoint.pos.x - pt.pos.x) > 0.03f) {
+      current_alphapoints->insert(current_alphapoints->begin() + ir, pt);
+      // clear existing points if drawing over or under them
+      prevPtIdx = (prevPtIdx != 0 && prevPtIdx + 1 <= ir) ?
+                  current_alphapoints->erase(current_alphapoints->begin() + (prevPtIdx + 1), current_alphapoints->begin() + ir)
+                  - current_alphapoints->begin() :
+                  ir;
+    }
 
     tfn_changed = true;
   }
