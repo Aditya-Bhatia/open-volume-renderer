@@ -97,6 +97,7 @@ class TFN_MODULE_INTERFACE TransferFunctionWidget
   bool lockIsPressed = false;
   bool ctrlIsPressed = false;
   bool deletePoints = false;
+  bool fineControl = false;
 
  public:
   ~TransferFunctionWidget();
@@ -370,7 +371,7 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
 
   // Always show <= maxVisible points
   int step = 1;
-  if (total > maxVisible) {
+  if ((!fineControl) && (total > maxVisible)) {
     step = (int)std::ceil((float)total / maxVisible);
   }
   // draw circles
@@ -393,7 +394,8 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
       }
     }
     // delete all points (double click scroll wheel or use keyboard shortcut shift + backspace)
-    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered()) {
+    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered() &&
+        (current_alphapoints->size() > 2 || current_gaussianobjects->size() > 0)) {
       current_alphapoints->clear();
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));
@@ -406,7 +408,10 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
     else if (!ctrlIsPressed && ImGui::IsItemActive()) {
       ImVec2 delta = ImGui::GetIO().MouseDelta;
 
-      int clusterRadius = 2; // move 2 points on each side
+      int clusterRadius = 0;
+      if (!fineControl && current_alphapoints->size() > maxVisible) {
+        clusterRadius = 2; // move 2 points on each side
+      }
       for (int j = std::max(0, i - clusterRadius); j <= std::min((int)current_alphapoints->size() - 1, i + clusterRadius); j++) {
         float weight = 1.0f - (float)std::abs(j - i) / (clusterRadius + 1);
         (*current_alphapoints)[j].pos.y -= weight * delta.y / size.y;
@@ -887,6 +892,12 @@ inline void TransferFunctionWidget::set_keyboard_input(const std::string &key)
   else if (key == "delete") {
     deletePoints = true;
   }
+  else if (key == "fineControl") {
+    std::string flag_str = fineControl ? "off" : "on";
+    logText.back().message += flag_str;
+    std::cout << flag_str << std::endl;
+    fineControl = !fineControl;
+  }
 }
 
 inline void TransferFunctionWidget::set_log_text(const std::string &text)
@@ -933,7 +944,8 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
         tfn_changed = true;
     }
     // delete all points (double click scroll wheel or use keyboard shortcut shift + backspace)
-    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered()) {
+    if ((ImGui::IsMouseDoubleClicked(2) || deletePoints) && ImGui::IsAnyItemHovered() &&
+        (current_alphapoints->size() > 2 || current_gaussianobjects->size() > 0)) {
       current_alphapoints->clear();
       current_alphapoints->insert(current_alphapoints->begin(), AlphaPoint(vec2f(0.00f, 0.00f)));
       current_alphapoints->insert(current_alphapoints->begin() + 1, AlphaPoint(vec2f(1.00f, 0.00f)));

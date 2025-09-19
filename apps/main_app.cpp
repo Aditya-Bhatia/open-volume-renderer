@@ -330,6 +330,15 @@ public:
           break;
         }
         break;
+      case 'd':
+      case 'D':
+        if (mods == 1) { // shift is pressed
+          widget.set_log_text("Detailed alpha control view: ");
+          std::cout << "Detailed alpha control view: ";
+          widget.set_keyboard_input("fineControl");
+          break;
+        }
+        break;
       // ctrl
       case 341:
         widget.set_log_text("Adjust scaling object mode: ");
