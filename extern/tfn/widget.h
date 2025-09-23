@@ -338,6 +338,17 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__color_control_points(
     // dark highlight
     ImGui::SetCursorScreenPos(ImVec2(pos.x - color_len, pos.y));
     draw_list->AddCircleFilled(ImVec2(pos.x, pos.y + 0.5f * color_len), 0.5f * color_len, ImGui::IsItemHovered() ? 0xFF051C33 : 0xFFBCBCBC);
+    // tooltip when hovered
+    if (ImGui::IsItemHovered()) {
+      const auto &pt = (*current_colorpoints)[i];
+      ImGui::BeginTooltip();
+      ImGui::Text("ColorPoint");
+      ImGui::Text("pos: %.3f", pt.position);
+      ImGui::Text("r: %.3f", pt.color.x);
+      ImGui::Text("g: %.3f", pt.color.y);
+      ImGui::Text("b: %.3f", pt.color.z);
+      ImGui::EndTooltip();
+    }
     // delete color point
     if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
       if (i > 0 && i < current_colorpoints->size() - 1) {
@@ -386,6 +397,15 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_editor__alpha_control_points(
     draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFFD8D8D8);
     // highlight
     draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xFFD8D8D8);
+    // tooltip when hovered
+    if (ImGui::IsItemHovered()) {
+      const auto &pt = (*current_alphapoints)[i].pos;
+      ImGui::BeginTooltip();
+      ImGui::Text("AlphaPoint");
+      ImGui::Text("x: %.3f", pt.x);
+      ImGui::Text("y: %.3f", pt.y);
+      ImGui::EndTooltip();
+    }
     // delete alpha point
     if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
       if (i > 0 && i < current_alphapoints->size() - 1) {
@@ -936,7 +956,15 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_gaussian_alpha_control_points
     draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xFF565656);
     // highlight
     draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFFD8D8D8 : 0xFF051c33);
-
+    // tooltip when hovered
+    if (ImGui::IsItemHovered()) {
+      const auto &pt = (*current_gaussianpoints)[i].pos;
+      ImGui::BeginTooltip();
+      ImGui::Text("GaussianPoint");
+      ImGui::Text("x: %.3f", pt.x);
+      ImGui::Text("y: %.3f", pt.y);
+      ImGui::EndTooltip();
+    }
     // delete gaussian object
     if (ImGui::IsMouseDoubleClicked(1) && ImGui::IsItemHovered()) {
         auto it = (*current_gaussianobjects).begin();
@@ -1018,6 +1046,15 @@ inline tfn::vec4f TransferFunctionWidget::draw_tfn_scaling_object_control_points
       draw_list->AddCircleFilled(pos, 0.8f * alpha_len, 0xCCFF0000);
       // highlight
       draw_list->AddCircleFilled(pos, 0.6f * alpha_len, ImGui::IsItemHovered() ? 0xFF051c33 : 0xCCFF0000);
+      // tooltip when hovered
+      if (ImGui::IsItemHovered()) {
+        const auto &pt = scalingObject->scalingPoints[i];
+        ImGui::BeginTooltip();
+        ImGui::Text("ScalingPoint");
+        ImGui::Text("x: %.3f", pt.x);
+        ImGui::Text("y: %.3f", pt.y);
+        ImGui::EndTooltip();
+      }
       // drag scaling control point
       if (ImGui::IsItemActive()) {
         ImVec2 delta = ImGui::GetIO().MouseDelta;
