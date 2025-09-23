@@ -696,6 +696,20 @@ void TransferFunctionWidget::build_gui()
     bool prevUseScaling = *useScaling; //< to update tfn everytime useScaling is changed 
     ImGui::Checkbox(" use scaling", useScaling);
     if (prevUseScaling != *useScaling) { tfn_changed = true; }
+
+    // Right align the button
+    float windowWidth = ImGui::GetWindowContentRegionMax().x;
+    float buttonWidth = ImGui::CalcTextSize("keyboard shortcuts").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    ImGui::SameLine(windowWidth - buttonWidth - 22.0f);
+    static bool showShortcuts = false;
+    if (ImGui::Button("keyboard shortcuts")) {
+      showShortcuts = !showShortcuts; // toggle window on/off
+    }
+    if (showShortcuts) {
+      ImGui::Begin("Keyboard Shortcuts", &showShortcuts, ImGuiWindowFlags_AlwaysAutoResize);
+      // (empty for now)
+      ImGui::End();
+    }
   }
 
   ImGui::EndGroup();
