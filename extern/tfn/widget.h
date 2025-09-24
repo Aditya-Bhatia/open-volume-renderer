@@ -706,8 +706,54 @@ void TransferFunctionWidget::build_gui()
       showShortcuts = !showShortcuts; // toggle window on/off
     }
     if (showShortcuts) {
-      ImGui::Begin("Keyboard Shortcuts", &showShortcuts, ImGuiWindowFlags_AlwaysAutoResize);
-      // (empty for now)
+      ImGui::SetNextWindowSize(ImVec2(425, 410), ImGuiCond_Always);
+      ImGui::Begin("Keyboard Shortcuts", &showShortcuts, ImGuiWindowFlags_NoResize);
+      
+      ImGui::Text("Available Shortcuts:");
+      ImGui::Separator();
+      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(8, 8));
+
+      ImGui::Columns(2, "shortcuts"); // 2 columns: Shortcut | Description
+      ImGui::SetColumnWidth(0, 150.0f);
+      ImGui::Text("Shortcut"); ImGui::NextColumn();
+      ImGui::Text("Description"); ImGui::NextColumn();
+      ImGui::Separator();
+
+      ImGui::Text("F"); ImGui::NextColumn();
+      ImGui::Text("Enter fly mode"); ImGui::NextColumn();
+
+      ImGui::Text("I"); ImGui::NextColumn();
+      ImGui::Text("Enter inspect mode"); ImGui::NextColumn();
+
+      ImGui::Text("G"); ImGui::NextColumn();
+      ImGui::Text("Toggle GUI"); ImGui::NextColumn();
+
+      ImGui::Text("P"); ImGui::NextColumn();
+      ImGui::Text("Toggle performance GUI"); ImGui::NextColumn();
+
+      ImGui::Text("S"); ImGui::NextColumn();
+      ImGui::Text("Save screenshot"); ImGui::NextColumn();
+
+      ImGui::Text("Shift + L"); ImGui::NextColumn();
+      ImGui::TextWrapped("ScalingPoint axis lock (like in MS Paint "
+        "when drawing a line holding Shift, movement is locked to the axis "
+        "with the greater mouse delta)");
+      ImGui::NextColumn();
+
+      ImGui::Text("Shift + D"); ImGui::NextColumn();
+      ImGui::Text("Detailed AlphaPoint control view"); ImGui::NextColumn();
+
+      ImGui::Text("Ctrl"); ImGui::NextColumn();
+      ImGui::Text("Adjust scaling object"); ImGui::NextColumn();
+
+      ImGui::Text("Shift + Backspace"); ImGui::NextColumn();
+      ImGui::Text("Delete all points and gaussians"); ImGui::NextColumn();
+
+      ImGui::Text("Esc"); ImGui::NextColumn();
+      ImGui::Text("Exit application"); ImGui::NextColumn();
+
+      ImGui::Columns(1);
+      ImGui::PopStyleVar();
       ImGui::End();
     }
   }
